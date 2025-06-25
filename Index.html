@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Cobrinha</title>
+    <style>
+        body {
+            background-image: url('\Transformers FOC Background.jpg');
+            background-size: cover;
+            font-family: 'Times New Roman', Times, serif, sans-serif;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin-top: 20px;
+            color: black;
+        }
+        .canvas {
+            background-color: black;
+            display: block;
+            margin: 0 auto;
+            border: 6px solid red;
+        }
+        #painel-controle {
+            margin: 20px;
+        }
+        select, button {
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 8px;
+            border: none;
+        }
+        #game-over {
+            display: none;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 3px solid red;
+            padding: 20px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Jogo da Cobrinha</h1>
+
+    <canvas class="canvas" id="tela" width="400" height="400"></canvas>
+
+    <div id="painel-controle">
+        <label for="dificuldade">Dificuldade: </label>
+        <select id="dificuldade">
+            <option value="facil">Fácil</option>
+            <option value="medio" selected>Médio</option>
+            <option value="dificil">Difícil</option>
+        </select>
+        <button onclick="iniciarJogo()">Iniciar Jogo</button>
+        <p>Pontuação: <span id="pontuacao">0</span></p>
+    </div>
+
+    <div id="game-over">
+        <h2>💀 Fim de jogo!</h2>
+        <p>Sua pontuação: <span id="pontuacao-final">0</span></p>
+        <button onclick="iniciarJogo()">Jogar Novamente</button>
+    </div>
+
+    <audio id="som-comer" src="A-8-bit-powerup-6768.mp3"></audio>
+    <audio id="som-gameover" src="spongebob-fail.mp3"></audio>
+    <audio id="som-click" src="A-8-bit-explosion-10-340462.mp3"></audio>
+    <audio id="musica-fundo" src="The Everlove Cities in Dust.mp3" loop></audio>
+
+<script>
+    const tela = document.getElementById("tela");
+    const contexto = tela.getContext("2d");
+    const tamanhoBloco = 20;
+    const totalBlocos = tela.width / tamanhoBloco;
+
+    const somComer = document.getElementById("som-comer");
+    const somGameOver = document.getElementById("som-gameover");
+    const somClick = document.getElementById("som-click");
+
+    let cobrinha = [{ x: 5, y: 5 }];
+    let direcao = "direita";
+    let comida = gerarComida();
+    let pontuacao = 0;
+    let intervaloJogo;
+
+    function desenharCenario() {
+        contexto.fillStyle = "black";
+        contexto.fillRect(0, 0, tela.width, tela.height);
+    }
+
+    function desenharCobrinha() {
+        for (let parte of cobrinha) {
+            contexto.fillStyle = "green";
+            contexto.fillRect(parte.x * tamanhoBloco, parte.y * tamanhoBloco, tamanhoBloco, tamanhoBloco);
+        }
+    }
+
+    function desenharComida() {
+        contexto.fillStyle = "cyan";
+        contexto.fillRect(comida.x * tamanhoBloco, comida.y * tamanhoBloco, tamanhoBloco, tamanhoBloco);
+    }
+
+    function gerarComida() {
+        return {
+            x: Math.floor(Math.random() * totalBlocos),
+            y: Math.floor(Math.random() * totalBlocos)
+        };
+    }
+
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "ArrowUp" && direcao !== "baixo") direcao = "cima";
+        if (evento.key === "ArrowDown" && direcao !== "cima") direcao = "baixo";
+        if (evento.key === "ArrowLeft" && direcao !== "direita") direcao = "esquerda";
+        if (evento.key === "ArrowRight" && direcao !== "esquerda") direcao = "direita";
+    });
+
+    function moverCobrinha() {
+        let cabeca = { ...cobrinha[0] };
+
+        if (direcao === "direita") cabeca.x++;
+        if (direcao === "esquerda") cabeca.x--;
+        if (direcao === "cima") cabeca.y--;
+        if (direcao === "baixo") cabeca.y++;
+
+        cobrinha.unshift(cabeca);
+
+        if (cabeca.x === comida.x && cabeca.y === comida.y) {
+            comida = gerarComida();
+            pontuacao++;
+            atualizarPontuacao();
+            somComer.play();
+        } else {
+            cobrinha.pop();
+        }
+    }
+
+    function verificarColisoes() {
+        const cabeca = cobrinha[0];
+
+        // Colisão com paredes
+        if (
+            cabeca.x < 0 || cabeca.x >= totalBlocos ||
+            cabeca.y < 0 || cabeca.y >= totalBlocos
+        ) {
+            gameOver();
+        }
+
+        // Colisão com o próprio corpo
+        for (let i = 1; i < cobrinha.length; i++) {
+            if (cabeca.x === cobrinha[i].x && cabeca.y === cobrinha[i].y) {
+                gameOver();
+            }
+        }
+    }
+
+    function atualizarPontuacao() {
+        document.getElementById("pontuacao").innerText = pontuacao;
+    }
+
+    function iniciarJogo() {
+    somClick.play();
+    document.getElementById("game-over").style.display = "none";
+    document.getElementById("musica-fundo").play();
+    document.getElementById("game-over").style.display = "none";
+
+    cobrinha = [{ x: 5, y: 5 }];
+    direcao = "direita";
+    comida = gerarComida();
+    pontuacao = 0;
+    atualizarPontuacao();
+
+    let dificuldade = document.getElementById("dificuldade").value;
+    let velocidade;
+
+    switch (dificuldade) {
+        case "facil": velocidade = 200; break;
+        case "medio": velocidade = 120; break;
+        case "dificil": velocidade = 70; break;
+    }
+
+    clearInterval(intervaloJogo);
+    intervaloJogo = setInterval(() => {
+        desenharCenario();
+        moverCobrinha();
+        desenharCobrinha();
+        desenharComida();
+        verificarColisoes();
+    }, velocidade);
+}
+
+function gameOver() {
+    clearInterval(intervaloJogo);
+    somGameOver.play();
+    document.getElementById("pontuacao-final").innerText = pontuacao;
+    document.getElementById("game-over").style.display = "block";
+
+    // Para a música
+    const musica = document.getElementById("musica-fundo");
+    musica.pause();
+    musica.currentTime = 0;
+}
+</script>
+
+</body>
+</html>
